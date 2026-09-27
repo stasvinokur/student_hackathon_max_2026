@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Production sources must not rely on Node globals: the core also runs in the browser.
+    "types": []
+  },
+  "exclude": ["src/**/*.test.ts"]
+}

@@ -1,0 +1,238 @@
+# Методика индекса мест для кофейни в Казани — вкладка «Карта» (doc-3 «Карта мест: методика и архитектура», §3–4).
+# Это данные, а не код: по ним и по снимку OpenStreetMap офлайн-скрипт собирает content/kazan-coffee/location-index.json:
+#   pnpm --filter @otkryvay/api location-index --pack kazan-coffee
+# После любой правки этого файла снимок нужно пересобрать: тест сверяет sha256 файла с source.configSha256 снимка.
+#
+# Как считается (doc-3 §3):
+# - город покрыт сеткой квадратов; в индекс попадает квадрат, где не меньше grid.min_buildings зданий
+#   или есть точечный объект спроса;
+# - критерий спроса (model: decay) складывает объекты вокруг центра квадрата: полный вклад до decay.full метров,
+#   дальше линейно меньше, с decay.zero — ноль; учитываются cap ближайших объектов (без cap — все);
+# - вклад переводится в уровень 0–100 по всем квадратам города: norm linear — доля от P95, log — логарифмическая шкала
+#   между P50 и P95; уровень 0 — только когда объектов в пределах decay.zero нет;
+# - штрафы: конкуренты (model: saturation) — кофейни и кафе рядом против обычного для мест с похожим спросом,
+#   промзоны (model: share) — доля площади места;
+# - default_importance — важность по умолчанию (off, low, medium, high, required), пользователь меняет её в приложении;
+# - fact — проверяемая фраза о месте, title_anchor — название места по ближайшему объекту;
+# - min_features — защита от пустого или обрезанного ответа Overpass: меньше объектов — сборка падает.
+#   Порог — около половины объектов в OSM на 24.09.2026: город не теряет половину объектов между срезами,
+#   а обрезанный ответ, чужое зеркало или опечатка в селекторе — теряют.
+# Расстояния — по прямой, метры. Ориентиры: 80 м/мин пешком, 400 м ≈ 5 минут; 500 м — пешеходная доступность
+# остановки (СП 42.13330.2016, п. 11.24); 700 м — ориентир доступности метро (945-ПП, Москва).
+# В шаблонах пишите обычный пробел перед «м», «км», «%»: приложение само поставит неразрывный.
+
+format: otkryvay.location-criteria/1
+title: Где открыть кофейню в Казани
+disclaimer: >-
+  Модельная оценка по открытым данным OpenStreetMap: помогает выбрать районы для поиска помещения.
+  Не учитывает аренду, реальный поток людей, видимость входа и состояние помещения — проверяйте место лично.
+# Шаги пакета, которым помогает карта: «Подобрать район на карте».
+linked_actions: [lease-premises]
+# 300 м — квартал: достаточно подробно для выбора района и ≈ 5 тыс. застроенных квадратов на Казань.
+# min_features — порог маски застройки для сборщика, как у критериев: около половины из 153 524 зданий на 24.09.2026.
+grid: { cell_meters: 300, min_buildings: 3, min_features: 75000 }
+# Лучшие места — не ближе двух квадратов друг к другу, чтобы список не состоял из одного района.
+top: { size: 20, min_spacing_cells: 2 }
+
+criteria:
+  # ---------------- спрос ----------------
+  # Кофе навынос — импульсная покупка по пути: главные источники спроса — пассажиры, офисы и студенты.
+
+  - id: metro
+    title: Метро
+    role: demand
+    model: decay
+    default_importance: high
+    # Вход учитывается, только если отнесён к сети метро (тег network): у всех 67 действующих входов он есть,
+    # а в OSM на 24.09.2026 есть одинокий вход без тегов в 3 км от ближайшей станции (у ул. Академика Сахарова) —
+    # он дал бы ложный спрос.
+    osm: ['node["railway"="subway_entrance"]["network"]', 'node["railway"="station"]["station"="subway"]']
+    decay: { full: 150, zero: 700 }
+    cap: 1
+    norm: linear
+    # Входы метро в OSM Казани без названий: безымянный вход берёт имя станции в пределах 400 м.
+    borrow_name_within: 400
+    fact:
+      type: nearest
+      max: 1500
+      text: 'Метро «{name}» — {dist}'
+      unnamed: 'Вход в метро — {dist}'
+      none: 'Метро дальше {max}'
+    title_anchor: { priority: 1, within: 700, text: 'У метро «{name}»' }
+    min_features: 40
+
+  # Одна линия метро: для большей части города важнее наземный транспорт.
+  - id: transit
+    title: Остановки транспорта
+    role: demand
+    model: decay
+    default_importance: medium
+    osm: ['node["highway"="bus_stop"]', 'node["railway"="tram_stop"]', 'node["public_transport"="platform"]']
+    # Одна остановка часто нанесена несколькими точками (столб, платформа): ближе 30 м — одна остановка.
+    merge_within: 30
+    decay: { full: 100, zero: 500 }
+    cap: 6
+    norm: log
+    fact:
+      type: nearest
+      max: 1000
+      radius: 300
+      text: 'Остановок в {radius}: {n}, ближайшая «{name}» — {dist}'
+      unnamed: 'Остановок в {radius}: {n}, ближайшая — {dist}'
+      none: 'Остановок нет ближе {max}'
+    title_anchor: { priority: 5, within: 800, text: 'Остановка «{name}»' }
+    min_features: 900
+
+  - id: university
+    title: Вузы и колледжи
+    role: demand
+    model: decay
+    default_importance: high
+    osm: ['nwr["amenity"~"^(university|college)$"]']
+    decay: { full: 200, zero: 800 }
+    cap: 3
+    norm: linear
+    fact:
+      type: nearest
+      max: 1000
+      text: '{name} — {dist}'
+      unnamed: 'Вуз или колледж — {dist}'
+      none: 'Вузов и колледжей нет ближе {max}'
+    # Название вуза как есть: форма «рядом с …» потребовала бы склонения.
+    title_anchor: { priority: 4, within: 400, text: '{name}' }
+    min_features: 55
+
+  - id: office
+    title: Офисы и бизнес-центры
+    role: demand
+    model: decay
+    default_importance: high
+    osm: ['nwr["office"]', 'way["building"="office"]']
+    decay: { full: 150, zero: 500 }
+    cap: 40
+    norm: log
+    fact:
+      type: count
+      radius: 400
+      text: 'Офисов и бизнес-центров в {radius}: {n}'
+      none: 'Офисов в {radius} нет'
+    min_features: 750
+
+  - id: mall
+    title: Торговые центры
+    role: demand
+    model: decay
+    default_importance: medium
+    osm: ['nwr["shop"="mall"]']
+    decay: { full: 100, zero: 500 }
+    cap: 2
+    norm: linear
+    fact:
+      type: nearest
+      max: 800
+      text: 'ТЦ «{name}» — {dist}'
+      unnamed: 'Торговый центр — {dist}'
+      none: 'Торговых центров нет ближе {max}'
+    title_anchor: { priority: 3, within: 300, text: 'Рядом с ТЦ «{name}»' }
+    min_features: 40
+
+  - id: pedestrian
+    title: Пешеходные улицы
+    role: demand
+    model: decay
+    default_importance: medium
+    osm: ['way["highway"="pedestrian"]']
+    # Улица — линия: расстояние до ближайшей её точки (точки через 25 м).
+    geometry: line
+    decay: { full: 50, zero: 300 }
+    cap: 1
+    norm: linear
+    fact:
+      type: nearest
+      max: 500
+      text: '{name} — {dist}'
+      unnamed: 'Пешеходная зона — {dist}'
+      none: 'Пешеходных улиц нет ближе {max}'
+    title_anchor: { priority: 2, within: 150, text: '{name}' }
+    min_features: 15
+
+  # Туристы дают сезонный спрос — важность низкая.
+  - id: tourism
+    title: Достопримечательности и музеи
+    role: demand
+    model: decay
+    default_importance: low
+    osm: ['nwr["tourism"~"^(attraction|museum|gallery|viewpoint)$"]']
+    decay: { full: 150, zero: 500 }
+    cap: 5
+    norm: log
+    fact:
+      type: count
+      radius: 400
+      text: 'Туристических мест в {radius}: {n}'
+      none: 'Туристических мест в {radius} нет'
+    min_features: 85
+
+  # Жители дают спрос слабее пассажиров и офисов. Вес дома — площадь × этажность (нет этажности — 5 этажей).
+  - id: residential
+    title: Многоквартирные дома
+    role: demand
+    model: decay
+    default_importance: medium
+    osm: ['way["building"~"^(apartments|residential|dormitory)$"]']
+    weight: { kind: area_levels, default_levels: 5 }
+    decay: { full: 200, zero: 500 }
+    norm: log
+    fact:
+      type: count
+      radius: 400
+      # {m} — дома, у которых в OSM указано от 9 этажей; дома без этажности в OSM (≈ 3 % на 24.09.2026) в {m} не входят.
+      floors: 9
+      text: 'Многоквартирных домов в {radius}: {n}, из них от 9 этажей по данным OSM: {m}'
+      none: 'Многоквартирных домов в {radius} нет'
+    min_features: 3400
+
+  # ---------------- штрафы ----------------
+
+  # Конкуренты сравниваются с обычным для мест с похожим спросом (doc-3 §3.5): много кафе там, где спрос большой, —
+  # норма, а не штраф. Кофейня — по тегам или по названию и бренду; другие кафе считаются с весом 0,5.
+  - id: competitors
+    title: Кофейни и кафе рядом
+    role: penalty
+    model: saturation
+    default_importance: medium
+    osm: ['nwr["amenity"="cafe"]', 'nwr["shop"="coffee"]']
+    direct:
+      tags: ['cuisine~coffee_shop', 'shop=coffee']
+      name_pattern: '(кофе|кофейн|coffee|espresso|эспрессо)'
+    # Вердикт «рынок насыщен» — от двойного обычного: (кофейни + 0,5 × кафе + 1) / (обычное + 1) ≥ 2. В 9 децилях
+    # спроса из 10 обычное — ноль (у 83 % мест нет кафе в 300 м), и при пороге 1,5 насыщенным считалось место
+    # с одним кафе-некофейней (пиццерией, столовой) — 260 мест на 24.09.2026. «Исключать» (exclude_ratio)
+    # убирает ровно места с вердиктом «рынок насыщен».
+    saturation:
+      indirect_weight: 0.5
+      niche_bonus: 0.5
+      exclude_ratio: 2
+      saturated_ratio: 2
+      niche_ratio: 0.5
+    fact:
+      type: competitors
+      radius: 300
+      text: 'Кофеен в {radius}: {n}, других кафе: {m}'
+      none: 'Кофеен и кафе в {radius} нет'
+    min_features: 450
+
+  - id: industrial
+    title: Промзоны
+    role: penalty
+    model: share
+    geometry: area
+    default_importance: medium
+    osm: ['way["landuse"="industrial"]', 'rel["landuse"="industrial"]']
+    # «Исключать» убирает места, наполовину занятые промзоной.
+    exclude_share: 0.5
+    fact:
+      type: share
+      text: 'Промзона — {pct} % территории'
+      none: 'Промзон нет'
+    min_features: 250

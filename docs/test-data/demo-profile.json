@@ -1,0 +1,22 @@
+{
+  "description": "Профиль тестовой учётной записи demo_user (MAX id 1000001) — эталон «newbie-to-go» из content/kazan-coffee/fixtures.yaml. Смоделированные данные, не реальный предприниматель.",
+  "maxUserId": 1000001,
+  "profile": {
+    "format": "to_go",
+    "city": "kazan",
+    "legal_status": "none",
+    "premises": "searching",
+    "employees": 0,
+    "sells_food": false,
+    "opening_date": "дата заполнения + 60 дней"
+  },
+  "doneTasks": ["support-consultation", "register-business"],
+  "expected": {
+    "actions": 19,
+    "readiness": { "done": 2, "total": 19, "percent": 10, "criticalDone": 1, "criticalTotal": 9 },
+    "projectedOpeningDate": "дата заполнения + 66 дней",
+    "nextStep": "lease-premises",
+    "overdue": ["lease-premises"],
+    "blockers": ["lease-premises", "fit-out", "production-control"]
+  }
+}

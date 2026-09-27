@@ -1,0 +1,43 @@
+{
+  "name": "@otkryvay/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "db:generate": "drizzle-kit generate",
+    "dev": "NODE_EXTRA_CA_CERTS=../../certs/russian_trusted_root_ca.pem tsx watch --conditions=source --env-file-if-exists=../../.env src/main.ts",
+    "openapi": "tsx --conditions=source src/scripts/openapi.ts",
+    "seed:demo": "tsx --conditions=source src/scripts/seed-demo.ts",
+    "kpi": "tsx --conditions=source src/scripts/kpi.ts",
+    "sign-init-data": "tsx --conditions=source src/scripts/sign-init-data.ts",
+    "location-index": "NODE_EXTRA_CA_CERTS=../../certs/russian_trusted_root_ca.pem tsx --conditions=source src/scripts/location-index/main.ts"
+  },
+  "dependencies": {
+    "@fastify/swagger": "^9.8.1",
+    "@maxhub/max-bot-api": "^0.3.1",
+    "@otkryvay/content": "workspace:*",
+    "@otkryvay/core": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.12.5",
+    "fastify-type-provider-zod": "^7.0.0",
+    "openapi-types": "^12.1.3",
+    "pino": "^10.3.1",
+    "postgres": "^3.4.9",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.23.13"
+  },
+  "files": [
+    "dist",
+    "drizzle"
+  ]
+}

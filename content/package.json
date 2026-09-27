@@ -1,0 +1,10 @@
+{
+  "name": "@otkryvay/content",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rules packs (data only). Loaded and validated by the API at startup.",
+  "files": ["*/*.yaml", "*/*.json", "*/README.md"],
+  "exports": {
+    "./package.json": "./package.json"
+  }
+}

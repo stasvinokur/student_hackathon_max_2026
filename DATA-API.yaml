@@ -1,0 +1,375 @@
+# Контракт обязательных проверок API решения «Открывай» (трек «Эффективный бизнес», хакатон MAX).
+# Полное описание методов и схем — openapi.yaml в корне репозитория.
+
+schema_version: "1.0"
+
+solution:
+  name: Открывай
+  team_id: t750  # бот @t750_hakaton_max_bot
+  description: >-
+    MAX-бот и мини-приложение: персональный маршрут открытия первой кофейни или coffee-to-go в Казани,
+    три действия, которые могут сорвать запуск, и напоминания о следующем шаге.
+
+base_url: https://otkryvay.stasvinokur.ru
+
+authentication:
+  type: header
+  header: X-Max-Init-Data
+  description: >-
+    Строка WebApp.initData из MAX Bridge, подписанная токеном бота (HMAC-SHA256, схема MAX:
+    https://dev.max.ru/docs/webapps/validation). В клиенте MAX её передаёт мини-приложение. Для проверки
+    без клиента подпись для тестовой учётной записи выдаёт скрипт:
+      docker compose exec -T api node dist/scripts/sign-init-data.js <MAX user id>
+    (или pnpm --filter @otkryvay/api sign-init-data <id> с MAX_BOT_TOKEN в окружении).
+    Готовые значения для ролей ниже — на первом слайде презентации. На стенде подпись действует 30 дней
+    (INIT_DATA_MAX_AGE_SECONDS=2592000), по умолчанию — 24 часа.
+
+roles:
+  anonymous:
+    description: Запрос без заголовка X-Max-Init-Data или с поддельной подписью.
+  demo_user:
+    max_user_id: 1000001
+    description: >-
+      Тестовый пользователь с построенным маршрутом (профиль «newbie-to-go»: ещё не зарегистрирован,
+      coffee-to-go, ищет помещение, без сотрудников, открытие через 60 дней от даты заполнения; 2 шага выполнены).
+      60 дней меньше, чем нужно этому профилю: даже с выполненной регистрацией цепочка аренда (30 дней) → ремонт
+      (30) → пожарная безопасность (5 дней, закончить за день до открытия) занимает 66 дней. Поэтому /api/route
+      отдаёт прогноз: projectedOpeningDate — самая ранняя достижимая дата, в день заполнения на 6 дней позже
+      openingDate, дальше сдвигается на день каждый день, пока шаги цепочки не отмечены; сроки шагов считаются от неё.
+      Создаётся командой: docker compose exec -T api node dist/scripts/seed-demo.js 1000001
+  new_user:
+    max_user_id: 1000002
+    description: Пользователь, ещё не прошедший онбординг в боте (маршрута нет).
+
+checks:
+  - id: health
+    description: Живость сервиса и доступность БД.
+    method: GET
+    path: /health
+    role: anonymous
+    params: {}
+    expected_status: [200]
+    response:
+      content_type: application/json
+      required_fields: [status, db, core]
+      example: { status: ok, db: up, core: 0.1.0 }
+
+  - id: route_ok
+    description: Персональный маршрут пользователя.
+    method: GET
+    path: /api/route
+    role: demo_user
+    params:
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [200]
+    response:
+      content_type: application/json
+      required_fields: [pack, openingDate, projectedOpeningDate, today, daysToOpening, readiness, nextStep, blockers, lanes, places]
+      structure:
+        pack: { required: [id, version, title, checkedAt, disclaimer] }
+        projectedOpeningDate: "самая ранняя достижимая дата открытия, если openingDate не успеть (сроки шагов считаются от неё); null — успеть можно"
+        readiness: { required: [done, total, percent, criticalDone, criticalTotal] }
+        blockers: "массив до 3 TaskSummary из полосы critical"
+        lanes: { required: [critical, ops, support], items: TaskSummary }
+        places: "массив RoutePlace — места применимых шагов маршрута, каждое один раз"
+        TaskSummary: { required: [id, title, lane, kind, status, latestStart, floatDays, overdue, onCriticalPath, waitingFor] }
+        RoutePlace:
+          required: [id, name, shortName, address, lat, lon, note, osmUrl, source, actions]
+          source: { required: [url, title, checkedAt] }
+          actions: "массив { id, title } — шаги маршрута, которые ведут к месту, не меньше одного"
+
+  - id: route_unauthorized
+    description: Без подписи initData — отказ до обработки запроса.
+    method: GET
+    path: /api/route
+    role: anonymous
+    params: {}
+    expected_status: [401]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+      example: { error: unauthorized, message: initData missing }
+
+  - id: route_forged_signature
+    description: Подпись не совпадает (данные изменены после подписи).
+    method: GET
+    path: /api/route
+    role: anonymous
+    params:
+      headers: { X-Max-Init-Data: "<initData demo_user с изменённым user.id>" }
+    expected_status: [401]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+      example: { error: unauthorized, message: initData bad_signature }
+
+  - id: route_not_found
+    description: Онбординг не пройден — маршрута нет.
+    method: GET
+    path: /api/route
+    role: new_user
+    params:
+      headers: { X-Max-Init-Data: "<initData new_user>" }
+    expected_status: [404]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+      example: { error: route_not_found }
+
+  - id: task_ok
+    description: Карточка действия из маршрута.
+    method: GET
+    path: /api/tasks/{id}
+    role: demo_user
+    params:
+      path: { id: lease-premises }
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [200]
+    response:
+      content_type: application/json
+      required_fields:
+        [id, title, lane, kind, status, latestStart, latestFinish, floatDays, overdue, onCriticalPath,
+         waitingFor, dependsOn, why, doNow, prepare, doneWhen, durationDays, source, places]
+      structure:
+        kind: "official_fact | recommendation | test_data"
+        source: { required: [url, title, checkedAt], nullable: true }
+        places: "массив Place — места шага; у этого шага мест нет, массив пустой"
+        Place:
+          required: [id, name, shortName, address, lat, lon, note, osmUrl, source]
+          source: { required: [url, title, checkedAt] }
+
+  - id: task_with_places
+    description: Карточка шага, который делается в конкретном месте Казани, — с адресом, координатами и источником.
+    method: GET
+    path: /api/tasks/{id}
+    role: demo_user
+    params:
+      path: { id: rpn-notification }
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [200]
+    response:
+      content_type: application/json
+      required_fields:
+        [id, title, lane, kind, status, latestStart, latestFinish, floatDays, overdue, onCriticalPath,
+         waitingFor, dependsOn, why, doNow, prepare, doneWhen, durationDays, source, places]
+      structure:
+        places: "массив Place — одно место: Управление Роспотребнадзора по Республике Татарстан"
+        Place:
+          required: [id, name, shortName, address, lat, lon, note, osmUrl, source]
+          source: { required: [url, title, checkedAt] }
+
+  - id: task_not_in_route
+    description: Действие, которого нет в маршруте пользователя (чужие данные не раскрываются).
+    method: GET
+    path: /api/tasks/{id}
+    role: demo_user
+    params:
+      path: { id: hire-staff }
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [404]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+      example: { error: task_not_found }
+
+  - id: task_bad_id
+    description: Некорректный идентификатор действия.
+    method: GET
+    path: /api/tasks/{id}
+    role: demo_user
+    params:
+      path: { id: "BAD!" }
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [400]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+      example: { error: bad_request }
+
+  - id: task_mark_done
+    description: Отметить действие выполненным; ответ содержит обновлённую карточку, готовность и следующий шаг.
+    method: PATCH
+    path: /api/tasks/{id}
+    role: demo_user
+    params:
+      path: { id: get-ukep }
+      headers: { X-Max-Init-Data: "<initData demo_user>", Content-Type: application/json }
+      body: { status: done }
+    expected_status: [200]
+    response:
+      content_type: application/json
+      required_fields: [task, readiness, nextStep]
+      structure:
+        task: { required: [id, status], status: done }
+        readiness: { required: [done, total, percent, criticalDone, criticalTotal] }
+    note: 'Чтобы вернуть исходное состояние, отправьте тот же запрос с body {"status": "todo"}.'
+
+  - id: task_mark_invalid_body
+    description: Недопустимый статус.
+    method: PATCH
+    path: /api/tasks/{id}
+    role: demo_user
+    params:
+      path: { id: get-ukep }
+      headers: { X-Max-Init-Data: "<initData demo_user>", Content-Type: application/json }
+      body: { status: finished }
+    expected_status: [400]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+      example: { error: bad_request }
+
+  - id: readiness_ok
+    description: Готовность к открытию.
+    method: GET
+    path: /api/readiness
+    role: demo_user
+    params:
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [200]
+    response:
+      content_type: application/json
+      required_fields: [done, total, percent, criticalDone, criticalTotal]
+
+  - id: readiness_not_found
+    description: Готовность без маршрута.
+    method: GET
+    path: /api/readiness
+    role: new_user
+    params:
+      headers: { X-Max-Init-Data: "<initData new_user>" }
+    expected_status: [404]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+
+  - id: event_accepted
+    description: Событие аналитики из мини-приложения (только разрешённые типы).
+    method: POST
+    path: /api/events
+    role: demo_user
+    params:
+      headers: { X-Max-Init-Data: "<initData demo_user>", Content-Type: application/json }
+      body: { type: route_viewed, props: {} }
+    expected_status: [202]
+    response:
+      content_type: application/json
+      required_fields: [accepted]
+      example: { accepted: true }
+
+  - id: event_rejected
+    description: Неизвестный тип события.
+    method: POST
+    path: /api/events
+    role: demo_user
+    params:
+      headers: { X-Max-Init-Data: "<initData demo_user>", Content-Type: application/json }
+      body: { type: drop_tables }
+    expected_status: [400]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+
+  - id: config
+    description: Включённые функции мини-приложения.
+    method: GET
+    path: /api/config
+    role: demo_user
+    params:
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [200]
+    response:
+      content_type: application/json
+      required_fields: [features]
+      structure:
+        features:
+          required: [explain, locationIndex]
+          locationIndex: "массив { pack, version, actions } — пакеты, для которых есть индекс мест (вкладка «Карта»); пустой, если карта выключена"
+      example: { features: { explain: false, locationIndex: [{ pack: kazan-coffee, version: "20260924T084102Z-53b5a120", actions: [lease-premises] }] } }
+    note: 'version в примере — версия текущего снимка; меняется при его пересборке.'
+
+  - id: explain_disabled
+    description: «Объясни проще» (LLM) в сданной версии выключено — сервис честно отвечает 503, основной сценарий не затронут.
+    method: POST
+    path: /api/tasks/{id}/explain
+    role: demo_user
+    params:
+      path: { id: lease-premises }
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [503]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+      example: { error: explanation_unavailable }
+
+  - id: location_index_ok
+    description: >-
+      Снимок индекса мест для вкладки «Карта»: квадраты 300 м по Казани с уровнями критериев и фактами из
+      OpenStreetMap. Балл квадрата считает мини-приложение по важности, которую выбрал пользователь.
+    method: GET
+    path: /api/packs/{packId}/location-index
+    role: demo_user
+    params:
+      path: { packId: kazan-coffee }
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [200]
+    response:
+      content_type: application/json
+      required_fields: [format, pack, version, title, disclaimer, dataStatus, linkedActions, top, source, grid, criteria, places, cells]
+      structure:
+        format: otkryvay.location-index/1
+        dataStatus: "prepared_snapshot — подготовленный срез данных, а не живые данные"
+        source:
+          required: [name, licence, licenceUrl, attribution, attributionUrl, osmBase, extractedAt, endpoint, method, configSha256]
+          licence: "ODbL-1.0 — снимок является производной базой данных OpenStreetMap; attribution «© участники OpenStreetMap»"
+        grid: { required: [origin, cellMeters, rows, cols, mPerDegLat, mPerDegLon], cellMeters: 300 }
+        criteria: "массив критериев методики: id, title, role (demand | penalty), model (decay | saturation | share), defaultImportance, featureCount и параметры модели"
+        places: "массив [номер критерия, название, широта, долгота] — именованные объекты, на которые ссылаются факты (станции метро и др.)"
+        cells: "столбцы, одно значение на квадрат: row, col, level.<критерий> (0–100), fact.<критерий>.<near | dist | n | m>"
+    note: >-
+      Ответ отдаётся с заголовками ETag и Cache-Control: private, no-cache. Повторный запрос с заголовком
+      If-None-Match: <ETag из ответа> → 304 без тела. На стенде прокси сжимает ответ и дописывает к ETag -gzip или
+      -zstd, поэтому для 304 повторите запрос с тем же Accept-Encoding (например, curl --compressed оба раза) и тем
+      значением ETag, которое получили. Функция включена флагом LOCATION_INDEX_ENABLED (по умолчанию true); для
+      каких пакетов есть индекс — features.locationIndex в /api/config.
+
+  - id: location_index_not_found
+    description: Пакет без индекса мест (или карта выключена флагом LOCATION_INDEX_ENABLED=false).
+    method: GET
+    path: /api/packs/{packId}/location-index
+    role: demo_user
+    params:
+      path: { packId: no-such-pack }
+      headers: { X-Max-Init-Data: "<initData demo_user>" }
+    expected_status: [404]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+      example: { error: location_index_not_found, message: Для этого пакета нет индекса мест. }
+
+  - id: location_index_unauthorized
+    description: Без подписи initData снимок не отдаётся.
+    method: GET
+    path: /api/packs/{packId}/location-index
+    role: anonymous
+    params:
+      path: { packId: kazan-coffee }
+    expected_status: [401]
+    response:
+      content_type: application/json
+      required_fields: [error, message]
+      example: { error: unauthorized, message: initData missing }
+
+  - id: webhook_rejects_without_secret
+    description: Вебхук MAX принимает обновления только с секретом подписки.
+    method: POST
+    path: /webhook/max
+    role: anonymous
+    params:
+      headers: { Content-Type: application/json }
+      body: { update_type: bot_started }
+    expected_status: [401]
+    response:
+      content_type: application/json
+      required_fields: [error]
+    note: 'Маршрут есть только при BOT_MODE=webhook (публичный стенд). В локальном docker compose с BOT_MODE=polling или off он не регистрируется, ответ — 404.'

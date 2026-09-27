@@ -1,0 +1,88 @@
+/* The map canvas of the «Карта» tab. It comes with the chunk of the tab, as MapLibre and its CSS come with theirs: the
+   first screen of the app loads none of it. A card of Organic: the map under large rounded corners, the controls of
+   MapLibre dressed as the buttons of Organic, in the tokens of organic.css, so the dark theme needs no rules of its own.
+   The CSS of MapLibre comes after this file, in the chunk of MapLibre: a rule here that restyles a control outweighs
+   the rule of MapLibre it replaces, it never relies on the order. */
+
+/* Empty in list mode, the slot takes no space. */
+.map-slot:empty { display: none; }
+.map-slot--map { display: flex; flex-direction: column; gap: 14px; }
+/* The frame keeps the height of the map from the first render: nothing below moves when MapLibre arrives. Its own
+   stacking context keeps the controls of MapLibre (z-index 2) under the sticky section switch. */
+.map-frame { position: relative; isolation: isolate; height: clamp(260px, 45vh, 480px); border-radius: var(--o-radius-xl); overflow: hidden; background: var(--o-surface); }
+.map-view { width: 100%; height: 100%; }
+/* The words of MapLibre (the attribution, the hint of the gestures) in the font of the app, not in its Helvetica. */
+.map-frame .maplibregl-map { font-family: inherit; }
+/* Until the first tile of the basemap: the caption on a pill of its own, readable over the frame and over whatever
+   MapLibre has drawn so far. */
+.map-frame__loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.map-frame__caption { padding: 8px 16px; border-radius: var(--o-radius-pill); background: var(--o-bg); color: var(--o-text); font-size: 14px; font-weight: 600; box-shadow: var(--o-shadow-md); }
+/* The canvas takes the keyboard (arrows move the map, the plus and minus keys zoom). Its focus ring is drawn inside
+   the frame, whose rounded corners clip anything outside it; where :has() works, in two tones, the ground of Organic
+   inside the ring of focus, visible over any colour of the map. */
+.map-frame .maplibregl-canvas:focus-visible { outline: 3px solid var(--o-focus-border); outline-offset: -3px; }
+@supports selector(:has(*)) {
+  .map-frame .maplibregl-canvas:focus-visible { outline: none; }
+  .map-frame .maplibregl-map:has(.maplibregl-canvas:focus-visible)::after { content: ''; position: absolute; inset: 0; z-index: 1; border-radius: var(--o-radius-xl); box-shadow: inset 0 0 0 2px var(--o-bg), inset 0 0 0 5px var(--o-focus-border); pointer-events: none; }
+}
+
+/* The zoom buttons: discs of 40 px on the ground, 6 px apart, 12 px from the corner, their plus and minus in the text
+   colour. The buttons of MapLibre stay transparent touch targets of 44 px, the disc is their icon: MapLibre gives the
+   buttons its own hover, focus and corners, which then show nowhere. The plus and minus are the drawings of Lucide,
+   as the icons of the app, in a mask the colour of the text fills. */
+.map-frame .maplibregl-ctrl-group { background: none; }
+.map-frame .maplibregl-ctrl-group:not(:empty) { box-shadow: none; }
+.map-frame .maplibregl-ctrl-group button { width: 44px; height: 44px; }
+.map-frame .maplibregl-ctrl-group button + button { margin-top: 2px; border-top: 0; }
+.map-frame .maplibregl-ctrl button:not(:disabled):is(:hover, :active) { background-color: transparent; }
+.map-frame .maplibregl-ctrl-group button:focus:focus-visible { box-shadow: none; }
+.map-frame .maplibregl-ctrl button:is(.maplibregl-ctrl-zoom-in, .maplibregl-ctrl-zoom-out) .maplibregl-ctrl-icon { box-sizing: border-box; width: 40px; height: 40px; margin: 2px; padding: 12px; border-radius: 50%; background: var(--o-bg); box-shadow: var(--o-shadow-md); opacity: 1; }
+.map-frame .maplibregl-ctrl-icon::before { content: ''; display: block; width: 16px; height: 16px; background: var(--o-text); -webkit-mask: var(--map-icon) center / contain no-repeat; mask: var(--map-icon) center / contain no-repeat; }
+.map-frame .maplibregl-ctrl-zoom-in { --map-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.75' stroke-linecap='round'%3E%3Cpath d='M5 12h14M12 5v14'/%3E%3C/svg%3E"); }
+.map-frame .maplibregl-ctrl-zoom-out { --map-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.75' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E"); }
+/* At the end of the zoom the disc stays, its sign fades. */
+.map-frame .maplibregl-ctrl button:disabled .maplibregl-ctrl-icon::before { opacity: 0.35; }
+.map-frame .maplibregl-ctrl button:not(:disabled):active .maplibregl-ctrl-icon { background: var(--o-button-fill-pressed); }
+@media (hover: hover) and (pointer: fine) {
+  .map-frame .maplibregl-ctrl button:not(:disabled):hover:not(:active) .maplibregl-ctrl-icon { background: var(--o-button-fill-hover); }
+}
+/* The focus: a ring of two tones round the disc, the ground and then the accent, visible over any colour of the map
+   (a ring of the accent alone would vanish over the darkest cells). Forced colours drop shadows: the outline, clear
+   otherwise, is the ring there. */
+.map-frame .maplibregl-ctrl-group button:focus-visible .maplibregl-ctrl-icon { outline: 2px solid transparent; box-shadow: 0 0 0 2px var(--o-bg), 0 0 0 4px var(--o-focus-border); }
+
+/* In forced colours the backgrounds go to the colours of the system, and a sign drawn as a mask with them: the signs
+   take the colour of the text of a button instead. */
+@media (forced-colors: active) {
+  .map-frame .maplibregl-ctrl-icon::before, .map-frame .maplibregl-ctrl-attrib-button::before { forced-color-adjust: none; background: ButtonText; }
+}
+
+/* The attribution: a small pill of the ground, a little translucent, in muted text, at the bottom right as MapLibre
+   places it; folded, its «i» alone, a disc of 44 px. The «i» is the drawing of Lucide, as the plus and minus. */
+.map-frame .maplibregl-ctrl-attrib.maplibregl-compact { min-height: 40px; padding-right: 44px; border-radius: 22px; background: var(--o-bg); background: color-mix(in srgb, var(--o-bg) 88%, transparent); color: var(--o-muted-text); font-size: 11px; line-height: 16px; box-shadow: var(--o-shadow-sm); }
+.map-frame .maplibregl-ctrl-attrib.maplibregl-compact-show { padding: 2px 48px 2px 14px; }
+.map-frame .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner { padding: 12px 0; }
+.map-frame .maplibregl-ctrl-attrib a { color: var(--o-muted-text); }
+.map-frame .maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button { width: 44px; height: 44px; border-radius: 22px; background: none; }
+.map-frame .maplibregl-ctrl-attrib-button::before { content: ''; display: block; width: 18px; height: 18px; margin: 13px; background: var(--o-text); -webkit-mask: var(--map-icon) center / contain no-repeat; mask: var(--map-icon) center / contain no-repeat; --map-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4M12 8h.01'/%3E%3C/svg%3E"); }
+.map-frame .maplibregl-ctrl-attrib-button:focus { box-shadow: none; }
+.map-frame .maplibregl-ctrl-attrib-button:focus-visible { outline: 2px solid var(--o-focus-border); outline-offset: -2px; }
+
+/* The legend: «Индекс места», then «ниже», the steps as pills across the rest of the line and «выше»; the marks under
+   it. On a narrow screen the scale takes a line of its own. */
+.map-legend { display: flex; flex-direction: column; gap: 10px; padding: 0 2px; color: var(--o-secondary-text); font-size: 13px; }
+.map-legend__row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+/* The title stands on the line of «ниже» and «выше», not in the middle of the room the ticks take. */
+.map-legend__row--scale { align-items: baseline; gap: 8px 10px; }
+.map-legend__title { font-weight: 700; color: var(--o-text); }
+/* «ниже» and «выше» stand on the line of the swatches; the ticks hang under the swatches, in the room kept below. */
+.map-legend__scale { flex: 1 1 14em; max-width: 30em; display: flex; align-items: center; gap: 10px; padding-bottom: 14px; }
+.map-legend__bins { flex: 1; display: flex; gap: 3px; }
+.map-legend__bin { position: relative; flex: 1; display: flex; }
+.map-legend__swatch { width: 100%; height: 12px; border-radius: var(--o-radius-pill); }
+/* Where a step starts on the index, under the left edge of its swatch. */
+.map-legend__tick { position: absolute; top: 100%; left: 2px; margin-top: 3px; color: var(--o-muted-text); font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
+.map-legend__key { display: inline-flex; align-items: center; gap: 6px; }
+.map-legend__place { flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; }
+/* The ground of the map, framed: what a cell looks like when it is not coloured. */
+.map-legend__empty { flex-shrink: 0; box-sizing: border-box; width: 12px; height: 12px; border: 1px solid var(--o-control-border); border-radius: 4px; }

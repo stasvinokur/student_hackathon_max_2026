@@ -1,0 +1,281 @@
+# Эталонные профили для пакета kazan-coffee: тесты движка (apps/api/src/shell/content/kazan-coffee.test.ts)
+# и ручная проверка жюри. Ожидания пересчитываются только вместе с осознанным изменением пакета или расчёта маршрута.
+#
+# projected_opening — самая ранняя достижимая дата открытия, если выбранную не успеть (null — успеть можно): сроки
+# шагов считаются от неё. overdue — шаги, из-за которых выбранную дату не успеть и которые можно начать сегодня.
+
+pack: kazan-coffee
+pack_version: 1.1.2
+fixtures:
+  - id: newbie-to-go
+    description: Ещё не зарегистрирован, coffee-to-go без еды, ищет помещение, работает один; открытие через 88 дней
+    today: 2026-09-18
+    profile:
+      format: to_go
+      city: kazan
+      legal_status: none
+      premises: searching
+      employees: 0
+      sells_food: false
+      opening_date: 2026-12-15
+    expect:
+      status: ok
+      days_to_opening: 88
+      projected_opening: null
+      actions:
+        - bank-account
+        - chestny-znak
+        - choose-tax-regime
+        - consumer-info
+        - fire-safety
+        - fit-out
+        - get-ukep
+        - haccp
+        - kazan-signage
+        - kkt-registration
+        - lease-premises
+        - mercury-vetis
+        - pest-control
+        - production-control
+        - register-business
+        - rpn-notification
+        - support-consultation
+        - tko-contract
+        - to-go-packaging
+      blockers:
+        - register-business
+        - lease-premises
+        - fit-out
+      next_step: register-business
+      overdue: []
+  - id: newbie-in-a-month
+    description: "Тот же новичок, открытие через месяц: цепочка регистрация → аренда → ремонт → пожарная безопасность занимает 73 дня, откроется не раньше 8 декабря"
+    today: 2026-09-26
+    profile:
+      format: to_go
+      city: kazan
+      legal_status: none
+      premises: searching
+      employees: 0
+      sells_food: false
+      opening_date: 2026-10-26
+    expect:
+      status: ok
+      days_to_opening: 30
+      projected_opening: 2026-12-08
+      actions:
+        - bank-account
+        - chestny-znak
+        - choose-tax-regime
+        - consumer-info
+        - fire-safety
+        - fit-out
+        - get-ukep
+        - haccp
+        - kazan-signage
+        - kkt-registration
+        - lease-premises
+        - mercury-vetis
+        - pest-control
+        - production-control
+        - register-business
+        - rpn-notification
+        - support-consultation
+        - tko-contract
+        - to-go-packaging
+      blockers:
+        - register-business
+        - lease-premises
+        - fit-out
+      next_step: register-business
+      overdue:
+        - register-business
+  - id: ip-cafe-food-staff
+    description: ИП, кофейня с посадкой и едой, договор аренды подписан, 3 сотрудника; открытие через 32 дня — не успеть, откроется не раньше 30 октября
+    today: 2026-09-18
+    profile:
+      format: cafe
+      city: kazan
+      legal_status: ip
+      premises: signed
+      employees: 3
+      sells_food: true
+      opening_date: 2026-10-20
+    expect:
+      status: ok
+      days_to_opening: 32
+      projected_opening: 2026-10-30
+      actions:
+        - bank-account
+        - check-okved
+        - check-premises
+        - chestny-znak
+        - choose-tax-regime
+        - consumer-info
+        - fire-safety
+        - fit-out
+        - get-ukep
+        - haccp
+        - hire-staff
+        - kazan-signage
+        - kkt-registration
+        - medical-books
+        - mercury-vetis
+        - pest-control
+        - production-control
+        - ready-food-storage
+        - rpn-notification
+        - sout
+        - support-consultation
+        - tko-contract
+      blockers:
+        - check-premises
+        - fit-out
+        - production-control
+      next_step: check-premises
+      overdue:
+        - check-premises
+  - id: ooo-to-go-food-team
+    description: ООО, coffee-to-go с едой, ищет помещение, 12 сотрудников; открытие через 44 дня — не успеть, откроется не раньше 26 ноября
+    today: 2026-09-18
+    profile:
+      format: to_go
+      city: kazan
+      legal_status: ooo
+      premises: searching
+      employees: 12
+      sells_food: true
+      opening_date: 2026-11-01
+    expect:
+      status: ok
+      days_to_opening: 44
+      projected_opening: 2026-11-26
+      actions:
+        - bank-account
+        - check-okved
+        - chestny-znak
+        - choose-tax-regime
+        - consumer-info
+        - fire-safety
+        - fit-out
+        - get-ukep
+        - haccp
+        - hire-staff
+        - kazan-signage
+        - kkt-registration
+        - lease-premises
+        - medical-books
+        - mercury-vetis
+        - pest-control
+        - production-control
+        - ready-food-storage
+        - rpn-notification
+        - sout
+        - support-consultation
+        - tko-contract
+        - to-go-packaging
+      blockers:
+        - lease-premises
+        - fit-out
+        - production-control
+      next_step: lease-premises
+      overdue:
+        - lease-premises
+  - id: opening-today
+    description: "Граница: открытие сегодня — не успеть; сроки считаются от 30 ноября, регистрацию начать сегодня"
+    today: 2026-09-18
+    profile:
+      format: to_go
+      city: kazan
+      legal_status: none
+      premises: searching
+      employees: 0
+      sells_food: false
+      opening_date: 2026-09-18
+    expect:
+      status: ok
+      days_to_opening: 0
+      projected_opening: 2026-11-30
+      actions:
+        - bank-account
+        - chestny-znak
+        - choose-tax-regime
+        - consumer-info
+        - fire-safety
+        - fit-out
+        - get-ukep
+        - haccp
+        - kazan-signage
+        - kkt-registration
+        - lease-premises
+        - mercury-vetis
+        - pest-control
+        - production-control
+        - register-business
+        - rpn-notification
+        - support-consultation
+        - tko-contract
+        - to-go-packaging
+      blockers:
+        - register-business
+        - lease-premises
+        - fit-out
+      next_step: register-business
+      overdue:
+        - register-business
+  - id: opening-in-past
+    description: "Граница: дата открытия уже прошла — сроки считаются от 30 ноября, регистрацию начать сегодня"
+    today: 2026-09-18
+    profile:
+      format: to_go
+      city: kazan
+      legal_status: none
+      premises: searching
+      employees: 0
+      sells_food: false
+      opening_date: 2026-09-01
+    expect:
+      status: ok
+      days_to_opening: -17
+      projected_opening: 2026-11-30
+      actions:
+        - bank-account
+        - chestny-znak
+        - choose-tax-regime
+        - consumer-info
+        - fire-safety
+        - fit-out
+        - get-ukep
+        - haccp
+        - kazan-signage
+        - kkt-registration
+        - lease-premises
+        - mercury-vetis
+        - pest-control
+        - production-control
+        - register-business
+        - rpn-notification
+        - support-consultation
+        - tko-contract
+        - to-go-packaging
+      blockers:
+        - register-business
+        - lease-premises
+        - fit-out
+      next_step: register-business
+      overdue:
+        - register-business
+  - id: unsupported-city
+    description: Город без пакета правил — нужен честный отказ, а не маршрут
+    today: 2026-09-18
+    profile:
+      format: to_go
+      city: moscow
+      legal_status: none
+      premises: searching
+      employees: 0
+      sells_food: false
+      opening_date: 2026-12-15
+    expect:
+      status: needs_clarification
+      reason: unsupported_city

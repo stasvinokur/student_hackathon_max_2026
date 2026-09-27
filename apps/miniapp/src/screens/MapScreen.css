@@ -1,0 +1,48 @@
+/* The layout of the «Карта» tab. On a wide screen (the panel of MAX widened to the window of the web client, a tablet;
+   useWideScreen() sets map-screen--wide) the header and the lists go on the left and the map on the right, pinned in
+   view. The page still scrolls as a whole, as the rest of the app expects (the scroll kept by App.tsx, the section
+   switch that sticks). The rules come with the chunk of the tab, as MapSlot.css does: the first screen loads none. */
+
+/* One column (a phone, the narrow panel of MAX, list mode, a browser without :has()): the wrappers take no box, and the
+   header, the map and the lists stay items of .screen, laid out as before. */
+.map-screen, .map-screen__info { display: contents; }
+
+/* Two columns only with a map in the slot: in list mode the lists keep the whole width. The info takes about 40 % of
+   the width, no more than 520 px, the map the rest. The header takes the first row; the second (1fr) takes the height
+   of the map beyond it, so the row of the header never grows; with no header (the index still loading) the info comes
+   first and the empty second row takes that height. */
+.map-screen--wide:has(> .map-slot--map) {
+  display: grid;
+  grid-template-columns: clamp(320px, 40%, 520px) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  gap: 18px 20px;
+  align-items: start;
+}
+.map-screen--wide:has(> .map-slot--map) > :not(.map-slot) { grid-column: 1; }
+.map-screen--wide:has(> .map-slot--map) > .map-screen__info { display: flex; flex-direction: column; gap: 18px; }
+/* The map and its legend across all rows, pinned at --map-top (below) while the lists scroll by, as tall as the screen
+   under the pin; 100dvh where the browser knows it (the toolbar of a tablet comes and goes), 100vh elsewhere. */
+.map-screen--wide:has(> .map-slot--map) > .map-slot--map {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  position: sticky;
+  top: var(--map-top);
+  height: calc(100vh - var(--map-top) - 12px);
+  height: calc(100dvh - var(--map-top) - 12px);
+}
+/* The frame takes the height the legend leaves, not its own height of one column. */
+.map-screen--wide:has(> .map-slot--map) > .map-slot--map > .map-frame { flex: 1 1 0; height: auto; min-height: 0; }
+/* The bottom padding of .screen is more than the 12 px the pinned map leaves under it: with it, at the end of the page
+   the map, which does not leave its grid, would slide under the section switch. */
+.screen:has(> .map-screen--wide > .map-slot--map) { padding-bottom: 12px; }
+/* Where the map is pinned, set on the page for the map to take: a card brought into view stops there too, level with
+   the top of the map. Under the section switch: the 70 px of the bar and the 12 px under it (the gap of 18 px of the
+   tab, .map-page in map/map.css, less the 6 px the bar gives back), the height of the bar that scroll-padding-top:
+   72px in styles.css assumes too. On the screen opened from a step: where the map stands under «Назад» (12 + 27 +
+   12 px, the same 18 less 6), so it does not move and fits the screen from the start. The button (padding 4px above and
+   below, the font of the page, line-height normal) grows with the font, and the map still fits while the button stays
+   within 39 px: about up to the «very large» font size of Chrome. The 12 px of the padding of the screen are only a
+   fallback: today every screen has the switch or «Назад». */
+html:has(.map-screen--wide > .map-slot--map) { --map-top: 12px; scroll-padding-top: var(--map-top); }
+html:has(.back ~ .map-screen--wide > .map-slot--map) { --map-top: 51px; }
+html:has(.sections-bar ~ .map-screen--wide > .map-slot--map) { --map-top: 82px; }

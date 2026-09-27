@@ -1,0 +1,253 @@
+/* The theme is set on <html> as data-theme, by index.html before the first frame and by ThemeProvider after; the
+   colours are the tokens of organic.css, themed by it, so the rules below serve both themes. The page under the app
+   takes the ground of Organic, as the screens do (what shows before the app mounts and past the edge of an overscroll).
+   color-scheme gives the native parts, the popup of a select and the scrollbars, the theme picked in the app rather
+   than the one of the system; «light only» keeps an Android WebView with algorithmic darkening from darkening the light
+   theme the user picked. */
+:root { color-scheme: light only; background: var(--o-bg); }
+:root[data-theme='dark'] { color-scheme: dark; }
+
+body {
+  margin: 0;
+}
+
+/* The focus of a button or a select, of MAX UI or of the app: a ring of the accent rather than the blue of the browser.
+   Weightless (:where), so a ring of its own (on the accent card, inside a list row) takes its place. The controls of
+   the map canvas are left out: they ring the discs they draw instead (MapSlot.css). */
+:where(.organic :is(button, select):not(.maplibregl-ctrl *)):focus-visible { outline: 2px solid var(--o-focus-border); outline-offset: 2px; }
+
+.screen {
+  /* The side padding of the screens of Organic; the section switch reaches past it to the edges. */
+  --screen-x: 18px;
+  /* The width of a screen on a wide screen, below. */
+  --screen-column: 680px;
+  min-height: 100vh;
+  /* 28 px under the last thing on a screen, and 44 px more: the narrow panel of the MAX web client paints a page
+     scrolled to its end about 40 px short of it (the page scrolls there, the picture stops higher), which cut the last
+     button of a screen in half. The card of a step ends in its own panel, which that does not reach. */
+  padding: 12px var(--screen-x) 72px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* On a wide screen (the panel of MAX widened to the window of the web client, a tablet) a screen is a column in the
+   middle of the window, as wide as a large phone, its section switch and «Назад» with it: lines and buttons across the
+   whole window would be hard to read. The map tab keeps the window, its map beside its lists (MapScreen.css); its
+   section switch stands where the column puts it (map/map.css). The ground around the column is the ground of the
+   page. */
+@media (min-width: 720px) {
+  .screen:not(.map-page) { max-width: var(--screen-column); margin-inline: auto; }
+}
+
+/* «Назад»: the arrow and the word, 27 px tall at the default font size (4 + a line + 4), as MapScreen.css counts. Its
+   touch target reaches past the box into the padding of the screen and the gap below: 44 px tall. */
+.back {
+  position: relative;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 27px;
+  box-sizing: border-box;
+  background: none;
+  border: 0;
+  border-radius: var(--o-radius-sm);
+  padding: 4px 8px 4px 0;
+  color: var(--o-secondary-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.back::after { content: ''; position: absolute; inset: -9px -12px -8px; }
+
+.muted { color: var(--o-muted-text); }
+.center { text-align: center; }
+
+.state { min-height: 60vh; padding: 24px; }
+.state--compact { min-height: 0; padding: 16px; }
+
+.progress { width: 100%; height: 12px; border-radius: var(--o-radius-pill); background: var(--o-track-fill); overflow: hidden; }
+.progress__fill { height: 100%; border-radius: inherit; background: var(--o-sage-fill); transition: width 0.3s ease; }
+
+/* The route spaces its parts wider than the other screens. Its hero: the days to the opening big in Lora, the date and
+   the pack, a warning when that date cannot be met, the progress; behind them a sage disc at the top right, cut at the
+   edge of the screen, where the box of the disc ends, so the page never scrolls sideways. The screen isolates its
+   layers: the disc goes under all the rest of it (the warning, the card of the next step it may reach on a narrow
+   screen) and over the ground of the screen. */
+.route { isolation: isolate; gap: 22px; }
+.route-hero { position: relative; display: flex; flex-direction: column; gap: 10px; padding-top: 6px; }
+.route-hero__shape { position: absolute; z-index: -1; top: -30px; right: calc(-1 * var(--screen-x)); width: calc(140px + var(--screen-x)); height: 200px; overflow: hidden; pointer-events: none; }
+.route-hero__shape::before { content: ''; position: absolute; top: 0; left: 0; width: 200px; height: 200px; border-radius: 50%; background: var(--o-hero-fill); }
+/* In the column of a wide screen there is no edge of a phone to cut the disc at: it stays whole inside the column. */
+@media (min-width: 720px) {
+  .route-hero__shape { right: 0; width: 200px; }
+}
+.route-hero__days { display: flex; flex-direction: column; gap: 10px; margin: 0; font-weight: 400; }
+.route-hero__label, .route-hero__meta { margin: 0; font-size: 14px; color: var(--o-secondary-text); }
+.route-hero__count { font: 700 clamp(48px, 16vw, 64px)/0.95 var(--o-font-heading); letter-spacing: -0.01em; overflow-wrap: break-word; }
+/* The warning, a notice in amber on a fill of its own, reads the same over the disc and past it. */
+.route-hero__warning { margin: 0; }
+.route-hero__progress { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.route-hero__done { flex: none; margin: 0; font-size: 14px; font-weight: 600; }
+
+/* «Следующий шаг»: the one card in the accent, its words in the colour on it, the button a pill of the ground. */
+.next { display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: var(--o-radius-xl); background: var(--o-accent-fill); color: var(--o-accent-on-fill); }
+.next__label { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.next__title { margin: 0; font: 700 24px/1.15 var(--o-font-heading); letter-spacing: -0.01em; overflow-wrap: break-word; }
+.next__status { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 14px; font-weight: 600; line-height: 20px; }
+.next__status svg { flex: none; margin-top: 2px; }
+.next__open { min-height: 48px; margin-top: 6px; padding: 12px 20px; border: 0; border-radius: var(--o-radius-pill); background: var(--o-bg); color: var(--o-accent-text); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.next__open:active { background: var(--o-accent-soft); }
+@media (hover: hover) and (pointer: fine) { .next__open:hover { background: var(--o-accent-soft); } }
+.next__open:focus-visible { outline: 2px solid var(--o-accent-on-fill); outline-offset: 2px; }
+
+/* The readiness button, a medium one of MAX UI (52 px): its label wraps rather than lose the percent to an ellipsis on
+   a narrow screen or in large text, and the button grows with it. */
+.route__readiness { height: auto; min-height: 52px; }
+.route__readiness-label { font-size: 16px; font-weight: 600; white-space: normal; text-align: center; }
+.route__disclaimer { margin: 0; font-size: 12px; line-height: 1.5; color: var(--o-muted-text); }
+
+/* The status of a step: done a sage disc with a check, overdue a terracotta one with «!», waiting a dashed ring, to do
+   a ring. */
+.mark { display: inline-flex; width: 28px; height: 28px; border-radius: 50%; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; line-height: 1; flex-shrink: 0; border: 2.5px solid var(--o-control-border); box-sizing: border-box; }
+.mark--done { background: var(--o-sage-fill); border: 0; color: var(--o-sage-on-fill); }
+.mark--overdue { background: var(--o-accent-fill); border: 0; color: var(--o-accent-on-fill); }
+.mark--waiting { border-style: dashed; }
+
+/* A list of steps, or of places on the map: its heading in Lora with a count at the right, the rows on a card. A row
+   rounds inside the card as far from its edge as the padding of the card; hovered, it takes the hover fill of a card,
+   pressed, a ripple of the pressed fill of a button (the overlays of MAX UI take colours of Organic, not its cold
+   grey). The steps of a place on its card on the map are such rows too (screens/map/map.css). */
+.task-group { display: flex; flex-direction: column; gap: 10px; }
+.task-group__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0; font-size: 13px; font-weight: 400; color: var(--o-muted-text); }
+.task-group__title { font: 700 20px/1.2 var(--o-font-heading); letter-spacing: -0.01em; color: var(--o-text); }
+.task-group__head--alert .task-group__title { color: var(--o-accent-text); }
+.task-group__count { flex: none; white-space: nowrap; }
+.task-list { --task-list-pad: 6px; padding: var(--task-list-pad); border-radius: var(--o-radius-lg); background: var(--o-card-fill); }
+.task-list .task-row { min-height: 0; padding: 12px 10px; border-radius: calc(var(--o-radius-lg) - var(--task-list-pad)); --MaxUi-Tappable_background-hovered: var(--o-card-fill-hover); --MaxUi-Tappable_background-pressed: var(--o-button-fill-pressed); }
+.task-list .task-row__before { flex: none; min-width: 0; min-height: 0; }
+.task-list .task-row__title { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.task-list .task-row__subtitle { font-size: 13px; line-height: 1.35; }
+.task-row__chevron { flex: none; color: var(--o-muted-icon); }
+.cell-button:focus-visible { outline: 2px solid var(--o-focus-border); outline-offset: -2px; }
+
+/* A done row steps back in muted text rather than in opacity, which would take its text below 4.5:1. */
+.cell--done { --text-primary: var(--o-muted-text); }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+/* Tags. The kind of the data is a neutral card-coloured pill of secondary text, test data a warning in amber. The
+   status of a step is bolder: done in sage, overdue in the accent, waiting in a dashed ring (overdue and waiting both
+   show when both hold). */
+.badge--official_fact, .badge--recommendation { background: var(--o-card-fill); color: var(--o-secondary-text); }
+.badge--done { background: var(--o-sage-soft); color: var(--o-sage-text); }
+.badge--test_data { background: var(--o-amber-soft); color: var(--o-amber-text); }
+.badge--done, .badge--overdue, .badge--waiting { font-weight: 700; }
+.badge--overdue { background: var(--o-accent-soft); color: var(--o-accent-text); }
+.badge--waiting { padding: 2px 9px; border: 1px dashed var(--o-control-border); color: var(--o-secondary-text); }
+
+/* The card of a step: tags, the title in Lora and when to start over cards of a label and text, the things to prepare
+   on sage. «Выполнено» sticks to the bottom over the ground while the card scrolls under it, fading in over its top
+   padding only, and at the end of the card stands after it: it never hides the end of the card, so the screen keeps no
+   room for it. The screen isolates its layers: the panel goes over the card whatever comes positioned in it. The tags
+   follow the title in the page and show above it. */
+.step { isolation: isolate; gap: 14px; padding-bottom: 0; }
+.step-head { display: flex; flex-direction: column; gap: 12px; padding-bottom: 6px; }
+.step-head__tags { order: -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.step-head__title { margin: 0; font: 700 clamp(26px, 8.2vw, 32px)/1.08 var(--o-font-heading); letter-spacing: -0.01em; overflow-wrap: break-word; }
+.step-head__meta { margin: 0; font-size: 14px; color: var(--o-secondary-text); }
+.step-card, .step-explain { display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: var(--o-radius-lg); background: var(--o-card-fill); }
+.step-card--sage { gap: 10px; background: var(--o-sage-soft); }
+.step-explain { background: none; border: 1px dashed var(--o-subtle-border); }
+/* The label of a card of a step, and of the card of the readiness. */
+.step-label, .ready-card__label { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--o-accent-text); }
+.step-card--sage .step-label { color: var(--o-sage-text); }
+.step-source .step-label { color: var(--o-muted-text); }
+.step-text, .step-list { margin: 0; font-size: 15px; line-height: 1.5; overflow-wrap: break-word; }
+.step-list { display: flex; flex-direction: column; gap: 8px; padding-left: 18px; line-height: 1.4; }
+.step-list li::marker { color: var(--o-muted-icon); }
+.step-card--sage .step-list li::marker { color: var(--o-accent-2); }
+/* A button is a box in the line even as a link: aligned by its top, a long name keeps the marker at its first line. */
+.step-list .link { vertical-align: top; }
+/* Whether a step the card waits for is done: a small muted line under its name. */
+.step-list__status { display: block; margin-top: 2px; font-size: 13px; color: var(--o-muted-text); }
+.step-note { margin: 0; font-size: 13px; line-height: 1.4; color: var(--o-muted-text); }
+.step-source { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 4px 4px 0; }
+.step-source .link { font-size: 15px; font-weight: 600; }
+.step-source .link svg { margin-left: 5px; vertical-align: -1px; }
+.step-source__tail { white-space: nowrap; }
+.step-action { position: sticky; bottom: 0; z-index: 1; display: flex; flex-direction: column; margin: auto calc(-1 * var(--screen-x)) 0; padding: 14px var(--screen-x) calc(26px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--o-bg) calc(100% - 14px), transparent); }
+/* What the focus moves to stops above the panel, not under it: TaskScreen keeps its height in --step-action-h. A screen
+   too low for a panel over the card (a phone on its side, a large text) has it at the end of the card only. */
+html:has(.step-action) { scroll-padding-bottom: calc(var(--step-action-h, 150px) + 8px); }
+@media (max-height: 30em) {
+  .step-action { position: static; }
+  html:has(.step-action) { scroll-padding-bottom: 0; }
+}
+/* The buttons of MAX UI on the card and ActionButton, the button a screen is for: the label in the system font at 600,
+   as Organic has them, wrapping rather than losing words to an ellipsis on a narrow screen or in large text; the button
+   grows with it. The notices of ActionButton go over it, a success with its check. */
+.step-button { height: auto; min-height: 52px; }
+.step-button__label, .action-button__label { font-weight: 600; white-space: normal; text-align: center; }
+.step-card .step-button { min-height: 44px; margin-top: 6px; }
+.step-card .step-button__label { font-size: 15px; }
+.action-button { height: auto; min-height: 54px; }
+.action-button__spinner { display: flex; }
+.action-notice { margin-bottom: 10px; }
+
+/* The readiness: a ring of sage over the track, as far round as the percent, the percent in Lora on a disc of the
+   ground inside it. The ring is sized in the em of the percent, so a larger text (the text zoom of Android) grows it
+   too, never past the width of the screen; the disc is a share of the ring. Then the tags of the counts, the required
+   steps left, the card as it goes to the chat, every character as sent, a long link broken anywhere rather than
+   scrolling the page sideways. */
+.ready { gap: 22px; }
+.ready-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.ready-ring { display: grid; place-items: center; width: 3.4375em; max-width: 100%; aspect-ratio: 1; border-radius: 50%; background: conic-gradient(var(--o-sage-fill) var(--ready-arc), var(--o-track-fill) 0); font-size: 64px; }
+.ready-ring__text { display: flex; flex-direction: column-reverse; align-items: center; justify-content: center; gap: 2px; width: 80%; aspect-ratio: 1; margin: 0; border-radius: 50%; background: var(--o-bg); font-size: 13px; font-weight: 400; color: var(--o-secondary-text); }
+.ready-ring__percent { font: 700 64px/1 var(--o-font-heading); letter-spacing: -0.02em; color: var(--o-text); }
+.ready-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.ready-tag { padding: 5px 12px; border-radius: var(--o-radius-pill); background: var(--o-card-fill); color: var(--o-secondary-text); font-size: 13px; font-weight: 600; }
+.ready-tag--sage { background: var(--o-sage-soft); color: var(--o-sage-text); }
+.ready-note { margin: 0; padding: 16px 18px; border-radius: var(--o-radius-lg); background: var(--o-card-fill); font-size: 15px; line-height: 1.5; }
+.ready-card { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: var(--o-radius-lg); background: var(--o-surface); }
+.ready-card__label { color: var(--o-secondary-text); }
+.ready-card__text { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.link { display: inline; background: none; border: 0; padding: 0; font: inherit; color: var(--o-accent-text); text-align: left; cursor: pointer; text-decoration: underline; }
+
+/* A notice: the soft fill and the text of its role, an error in the accent, a success in sage, a warning in amber (on
+   the route and in the criteria of the map). One line tall it is a pill (the radius stops at half the height), longer a
+   card of soft corners. One led by an icon keeps the icon beside the text, at the middle of its first line (16 px in a
+   line of 14 × 1.4), and never shrinks it for a long text. */
+.notice { padding: 10px 16px; border-radius: var(--o-radius-lg); font-size: 14px; font-weight: 600; line-height: 1.4; }
+.notice--error { background: var(--o-accent-soft); color: var(--o-accent-text); }
+.notice--success { background: var(--o-sage-soft); color: var(--o-sage-text); }
+.notice--warn { background: var(--o-amber-soft); color: var(--o-amber-text); }
+.notice--icon { display: flex; gap: 8px; }
+.notice--icon svg { flex: none; margin-top: 2px; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* «Маршрут | Карта»: sticks to the top of the root screens, over the page padding it covers. While it is shown, what
+   the page scrolls to (a focused row, a card) stops below it. */
+html:has(.sections-bar) { scroll-padding-top: 72px; }
+/* 70 px tall, which scroll-padding-top above and --map-top in MapScreen.css rely on: 12 px above, the sections (44 px
+   and 2 × 4 px of their track), 6 px below. The current section is a pill of text colour; the theme switch after them
+   is a round secondary button. */
+.sections-bar { position: sticky; top: 0; z-index: 2; display: flex; gap: 8px; align-items: center; margin: -12px calc(-1 * var(--screen-x)) 0; padding: 12px var(--screen-x) 6px; background: var(--o-bg); }
+.sections { flex: 1; display: flex; gap: 4px; padding: 4px; border-radius: var(--o-radius-pill); background: var(--o-surface); }
+.sections__item { flex: 1; min-height: 44px; padding: 6px 12px; border: 0; border-radius: var(--o-radius-pill); background: none; color: var(--o-secondary-text); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.sections__item[aria-current='page'] { background: var(--o-text); color: var(--o-bg); }
+.theme-toggle { flex: none; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--o-radius-pill); background: var(--o-button-fill); color: var(--o-text); cursor: pointer; }
+.theme-toggle:active { background: var(--o-button-fill-pressed); }
+@media (hover: hover) and (pointer: fine) {
+  .sections__item:not([aria-current]):hover { color: var(--o-text); }
+  .theme-toggle:hover:not(:active) { background: var(--o-button-fill-hover); }
+}
+
+/* A link that stands on its own line: a touch target of 44 px (WCAG 2.5.8 asks for at least 24). */
+.link-button { display: inline-flex; align-items: center; min-height: 44px; }
+
+.where { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.where__name { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.4; }
+.where__address { margin: 0; font-size: 14px; line-height: 1.4; color: var(--o-muted-text); }

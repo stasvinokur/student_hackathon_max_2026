@@ -1,0 +1,30 @@
+# Overlay for the public HTTPS stand (VPS):
+#   docker compose -f compose.yaml -f compose.stand.yaml up -d --build
+# Requires STAND_DOMAIN with a DNS A record pointing at the server, ports 80/443 open.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      STAND_DOMAIN: ${STAND_DOMAIN:?set STAND_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+      - miniapp
+
+  # Only Caddy is exposed on the stand.
+  api:
+    ports: !reset []
+  miniapp:
+    ports: !reset []
+
+volumes:
+  caddy-data:
+  caddy-config:

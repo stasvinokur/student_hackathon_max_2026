@@ -1,0 +1,23 @@
+# secrets
+.env
+.env.*
+!.env.example
+docs/access*.md
+
+# dependencies and build output (rebuilt inside the image)
+node_modules
+**/node_modules
+**/dist
+coverage
+.cache
+
+# not needed to build the images
+.git
+docs
+backlog
+**/*.log
+.DS_Store
+# presentation and video of the submission are not needed in the images
+**/*.pdf
+**/*.mp4
+**/*.mov

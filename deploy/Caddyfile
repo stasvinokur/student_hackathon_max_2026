@@ -1,0 +1,14 @@
+# Public HTTPS stand: one domain for the mini-app, the API and the MAX webhook.
+# Caddy obtains and renews the TLS certificate automatically.
+{$STAND_DOMAIN} {
+	encode zstd gzip
+
+	@api path /api/* /webhook/* /health
+	handle @api {
+		reverse_proxy api:3000
+	}
+
+	handle {
+		reverse_proxy miniapp:80
+	}
+}

@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+  - apps/*
+  - content
+
+# Install scripts are denied by default. esbuild (via drizzle-kit/vite) ships its
+# binary as an optional platform package, so its postinstall is not needed.
+allowBuilds:
+  esbuild: false

@@ -1,0 +1,4 @@
+# Content packs are data whose bytes matter: the location index snapshot keeps the sha256 of
+# location-criteria.yaml (source.configSha256), which must not depend on core.autocrlf.
+# text=auto: text files keep LF, a binary file (a picture) is left as it is.
+content/** text=auto eol=lf

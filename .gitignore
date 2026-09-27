@@ -1,0 +1,16 @@
+# secrets
+.env
+.env.*
+!.env.example
+docs/access*.md
+
+# deps / build
+node_modules/
+dist/
+.pnpm-store/
+coverage/
+*.log
+.DS_Store
+
+# raw Overpass answers of the location index pipeline (apps/api/src/scripts/location-index)
+.cache/

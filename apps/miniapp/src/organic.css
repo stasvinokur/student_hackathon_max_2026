@@ -1,0 +1,271 @@
+/* Organic, the design system of the app (claude.ai/design). Here:
+   - the tokens of the styles.css of Organic (a local copy, outside git: .cache/design/organic-styles.css) under an --o-
+     prefix: the ground (--o-bg), the surface, the text, the two accents, the divider, the tonal ramps, radii, shadows;
+   - the semantic tokens, named --o-{role}-{kind}[-{state}]: kind is fill, on-fill (text and icons on that fill), soft
+     (a tinted fill), text, icon or border; state is hover, pressed or disabled;
+   - a warm dark version of both, on data-theme of <html> as in styles.css;
+   - MAX UI dressed in Organic through its own tokens.
+   The contract of the screens: they take the semantic tokens and --o-bg, --o-surface, --o-text, --o-divider. A step of a
+   ramp only in a pair that holds in both themes, a fill of 100–300 under text of 700–900 of the same ramp; --o-accent
+   and --o-accent-2 only fill shapes (a dot, a pin), never text. Each semantic pair of text and its fills passes WCAG AA in
+   both themes, 4.5:1, and icons and the boundaries of controls pass 3:1 (organic.test.ts checks them); the divider and
+   the disabled states are exempt. The focus is a ring of --o-focus-border, 2 px wide at 2 px from the control, which
+   styles.css gives every button and select, of MAX UI or not, with no weight (:where); a screen sets a ring of its own
+   only where that one would not show (on the accent card, inside a list row). Organic has no red: an alert takes the
+   accent. Headings are Lora 700, the rest of the text the system font of the platform, as in MAX UI (Figtree of Organic
+   has no Cyrillic). */
+
+/* Lora 700, self-hosted from @fontsource/lora (SIL OFL 1.1): the Cyrillic and the Latin subsets in woff2, which every
+   browser of MAX reads. The unicode-range of the package (its 700.css) sends each character to the file that holds it;
+   the other subsets are not declared, so never fetched. Until the files arrive a heading shows in Georgia or the serif
+   of the system (font-display: swap). */
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('@fontsource/lora/files/lora-cyrillic-700-normal.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('@fontsource/lora/files/lora-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --o-bg: #f5ead8;
+  --o-surface: #ebddc5;
+  --o-text: #201e1d;
+  /* 3.0:1 and 3.1:1 on the ground: shapes only. */
+  --o-accent: #c67139;
+  --o-accent-2: #7a8a5e;
+  --o-divider: rgba(32, 30, 29, 0.16);
+
+  /* Tonal ramps of Organic, on one lightness scale in OKLCH: the same step of each role has the same visual value. */
+  --o-neutral-100: #f9f4ed;
+  --o-neutral-200: #eee7db;
+  --o-neutral-300: #dcd3c4;
+  --o-neutral-400: #c0b6a5;
+  --o-neutral-500: #a19786;
+  --o-neutral-600: #82796a;
+  --o-neutral-700: #645c50;
+  --o-neutral-800: #474238;
+  --o-neutral-900: #2e2b25;
+  --o-accent-100: #fff2eb;
+  --o-accent-200: #ffe1d0;
+  --o-accent-300: #ffc6a5;
+  --o-accent-400: #f6a06b;
+  --o-accent-500: #d67f48;
+  --o-accent-600: #b2622d;
+  --o-accent-700: #8c491a;
+  --o-accent-800: #643312;
+  --o-accent-900: #402310;
+  --o-accent-2-100: #f0fae1;
+  --o-accent-2-200: #e1eecc;
+  --o-accent-2-300: #ccdbb2;
+  --o-accent-2-400: #aebf92;
+  --o-accent-2-500: #8fa073;
+  --o-accent-2-600: #728157;
+  --o-accent-2-700: #56633f;
+  --o-accent-2-800: #3d472b;
+  --o-accent-2-900: #272e1b;
+
+  --o-radius-sm: 8px;
+  --o-radius-md: 16px;
+  --o-radius-lg: 28px;
+  --o-radius-xl: 32px;
+  --o-radius-pill: 999px;
+  --o-shadow-sm: 0 1px 2px rgba(46, 43, 37, 0.14);
+  --o-shadow-md: 0 3px 10px rgba(46, 43, 37, 0.16);
+  --o-shadow-lg: 0 12px 32px rgba(46, 43, 37, 0.22);
+  --o-font-heading: 'Lora', Georgia, 'Times New Roman', serif;
+
+  /* Semantic tokens. Most name a step of a ramp, which the dark theme re-expresses (100 a tinted fill on the ground, 800
+     strong text on it), so they hold in both themes; the others the dark theme sets on its own. */
+  --o-card-fill: var(--o-neutral-100);
+  --o-card-fill-hover: var(--o-neutral-200);
+  /* A secondary button, the theme switch. */
+  --o-button-fill: var(--o-surface);
+  --o-button-fill-hover: #ddd0b9;
+  --o-button-fill-pressed: #cfc2ad;
+  /* The track under the fill of a progress bar. */
+  --o-track-fill: var(--o-neutral-300);
+  /* The rank of a place: a sage chip on a card, one step stronger than --o-sage-soft. */
+  --o-rank-fill: var(--o-accent-2-200);
+  /* The disc behind the hero of the route, the sage of the rank: the days, the date and the progress stand on it. */
+  --o-hero-fill: var(--o-accent-2-200);
+  --o-secondary-text: var(--o-neutral-800);
+  --o-muted-text: var(--o-neutral-700);
+  --o-disabled-text: var(--o-neutral-500);
+  --o-muted-icon: var(--o-neutral-600);
+  --o-control-border: var(--o-neutral-600);
+  /* A dashed frame or a rule that only groups: decoration. */
+  --o-subtle-border: var(--o-neutral-400);
+  --o-focus-border: var(--o-accent-text);
+
+  /* The accent: the primary button, «Следующий шаг», alerts (overdue, errors), links. The accent of the mockup, #c67139,
+     gives its cream text 3.0:1 and accent-600 gives white 4.49:1. A tenth of the way from accent-600 to accent-700 in
+     OKLCH, the same hue, gives white 4.7:1: the lightest terracotta of that line with text at AA. Hover and press go
+     darker, towards accent-700. */
+  --o-accent-fill: #ae5f2b;
+  --o-accent-fill-hover: #9f5523;
+  --o-accent-fill-pressed: var(--o-accent-700);
+  --o-accent-fill-disabled: rgba(174, 95, 43, 0.48);
+  --o-accent-on-fill: #fff;
+  --o-accent-on-fill-disabled: rgba(255, 255, 255, 0.72);
+  --o-accent-soft: var(--o-accent-100);
+  --o-accent-text: var(--o-accent-700);
+
+  /* Sage, the second accent: done (a mark, a progress bar, a success notice), a card of things to prepare, a tag. Its fill
+     is accent-2-700 here, under white at 6.5:1, so a check on it reads even as text. */
+  --o-sage-fill: var(--o-accent-2-700);
+  --o-sage-on-fill: var(--o-accent-on-fill);
+  --o-sage-soft: var(--o-accent-2-100);
+  --o-sage-text: var(--o-accent-2-800);
+
+  /* Amber, for warnings. Organic has none: the hue of its neutral ramp with more chroma, at the lightness of step 200
+     for the fill and of step 800 for the text. */
+  --o-amber-soft: #fce5bb;
+  --o-amber-text: #694413;
+}
+
+/* The warm dark version: an espresso ground, cards and surfaces one and two steps lighter, cream text. The ramps run
+   from the ground up (the same OKLCH lightness per step across roles), so the light steps of the accents are the
+   readable ones, and the fills are light accents under dark text. */
+:root[data-theme='dark'] {
+  --o-bg: #1d1a17;
+  --o-surface: #322f2a;
+  --o-text: #f5ead8;
+  --o-accent: #c4713b;
+  --o-accent-2: #809065;
+  --o-divider: rgba(245, 234, 216, 0.14);
+
+  --o-neutral-100: #282622;
+  --o-neutral-200: #322f2a;
+  --o-neutral-300: #3e3a33;
+  --o-neutral-400: #554f46;
+  --o-neutral-500: #736a5e;
+  --o-neutral-600: #928879;
+  --o-neutral-700: #b7ac9d;
+  --o-neutral-800: #d7cec0;
+  --o-neutral-900: #f0e8dc;
+  --o-accent-100: #322218;
+  --o-accent-200: #412819;
+  --o-accent-300: #553018;
+  --o-accent-400: #76401b;
+  --o-accent-500: #9f5624;
+  --o-accent-600: #c4713b;
+  --o-accent-700: #ec9661;
+  --o-accent-800: #fbc1a0;
+  --o-accent-900: #ffe3d4;
+  --o-accent-2-100: #24281d;
+  --o-accent-2-200: #2c3222;
+  --o-accent-2-300: #363e28;
+  --o-accent-2-400: #4a5536;
+  --o-accent-2-500: #64724b;
+  --o-accent-2-600: #809065;
+  --o-accent-2-700: #a5b589;
+  --o-accent-2-800: #c7d6ae;
+  --o-accent-2-900: #e3efd2;
+
+  /* On a dark ground a shadow barely shows: a hairline of cream marks the edge, the darkness spreads around it. */
+  --o-shadow-sm: 0 0 0 1px rgba(245, 234, 216, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --o-shadow-md: 0 0 0 1px rgba(245, 234, 216, 0.06), 0 3px 10px rgba(0, 0, 0, 0.45);
+  --o-shadow-lg: 0 0 0 1px rgba(245, 234, 216, 0.06), 0 12px 32px rgba(0, 0, 0, 0.55);
+
+  --o-button-fill-hover: #403c36;
+  --o-button-fill-pressed: #4d4942;
+  /* accent-600 under the dark ground as text: 4.8:1; hover and press go lighter, towards accent-700. */
+  --o-accent-fill: var(--o-accent-600);
+  --o-accent-fill-hover: #d8834e;
+  --o-accent-fill-pressed: var(--o-accent-700);
+  --o-accent-fill-disabled: rgba(196, 113, 59, 0.48);
+  --o-accent-on-fill: #1d1a17;
+  --o-accent-on-fill-disabled: rgba(29, 26, 23, 0.6);
+  /* accent-2-600 under the dark ground: 5.0:1. */
+  --o-sage-fill: var(--o-accent-2-600);
+  --o-amber-soft: #3b2e18;
+  --o-amber-text: #efcc8c;
+}
+
+/* MAX UI in Organic. MAX UI keeps its tokens on its root div (<MaxUI className="organic">, theme.tsx), in rules of one
+   class each: the colour scheme and the platform. `:root .organic` (0,2,0) outweighs them wherever the stylesheets land
+   in the bundle, and needs none of their hashed class names. The values are --o- tokens, themed on <html>, so one block
+   serves both schemes. */
+:root .organic {
+  --background-surface: var(--o-bg);
+  --background-primary: var(--o-bg);
+  --background-card: var(--o-card-fill);
+
+  --text-primary: var(--o-text);
+  --text-secondary: var(--o-secondary-text);
+  --text-tertiary: var(--o-muted-text);
+  --text-themed: var(--o-accent-text);
+  --text-negative: var(--o-accent-text);
+  --text-primary-inverse-static: var(--o-accent-on-fill);
+  --states-text-primary-disabled: var(--o-disabled-text);
+  --states-text-themed-disabled: var(--o-disabled-text);
+  --states-text-negative-disabled: var(--o-disabled-text);
+  --states-text-primary-inverse-static-disabled: var(--o-accent-on-fill-disabled);
+
+  --icon-primary: var(--o-text);
+  --icon-tertiary: var(--o-muted-text);
+  --icon-mute: var(--o-muted-icon);
+  --icon-positive: var(--o-sage-fill);
+
+  /* Button variant="primary", and "destructive": Organic has no red. */
+  --button-primary: var(--o-accent-fill);
+  --states-button-primary-hover: var(--o-accent-fill-hover);
+  --states-button-primary-pressed: var(--o-accent-fill-pressed);
+  --states-button-primary-disabled: var(--o-accent-fill-disabled);
+  --button-negative: var(--o-accent-fill);
+  --states-button-negative-hover: var(--o-accent-fill-hover);
+  --states-button-negative-pressed: var(--o-accent-fill-pressed);
+  --states-button-negative-disabled: var(--o-accent-fill-disabled);
+  /* Button variant="secondary" takes the -contrast tokens, variant="secondary-contrast" the others. */
+  --button-secondary-contrast: var(--o-button-fill);
+  --states-button-secondary-contrast-hover: var(--o-button-fill-hover);
+  --states-button-secondary-contrast-pressed: var(--o-button-fill-pressed);
+  --states-button-secondary-contrast-disabled: var(--o-button-fill);
+  --button-secondary: var(--o-button-fill);
+  --states-button-secondary-hover: var(--o-button-fill-hover);
+  --states-button-secondary-pressed: var(--o-button-fill-pressed);
+  --states-button-secondary-disabled: var(--o-button-fill);
+
+  --divider-primary: var(--o-divider);
+  --controls-active: var(--o-accent-fill);
+  --states-controls-active-disabled: var(--o-accent-fill-disabled);
+  /* Counters: the primary and the attention one under the label colour of a primary button. */
+  --counter-themed: var(--o-accent-fill);
+  --counter-attention: var(--o-accent-fill);
+
+  /* Spinners: on their own and in secondary buttons in the accent, in primary buttons in the colour of the label. */
+  --gradients-loading-icon-primary-filled: var(--o-accent-text);
+  --gradients-loading-icon-themed-filled: var(--o-accent-text);
+  --gradients-loading-icon-neutral-themed-filled: var(--o-accent-text);
+  --gradients-loading-icon-negative-filled: var(--o-accent-text);
+  --gradients-loading-icon-contrast-static-filled: var(--o-accent-on-fill);
+
+  /* Everything softens: buttons go pill, cards and island cells take the large radius of Organic. */
+  --size-border-radius-button-xsmall: var(--o-radius-pill);
+  --size-border-radius-button-small: var(--o-radius-pill);
+  --size-border-radius-button-medium: var(--o-radius-pill);
+  --size-border-radius-button-large: var(--o-radius-pill);
+  --size-border-radius-semantic-border-radius-card: var(--o-radius-lg);
+  --r-1652: var(--o-radius-lg);
+
+  /* Headings (Display, Headline, Text hero … title) in Lora 700, set a little tighter; the rest keeps --family-base. */
+  --family-headers: var(--o-font-heading);
+  --font-weight-hero: 700;
+  --font-weight-header: 700;
+  --font-weight-subheader: 700;
+  --font-weight-title: 700;
+  --letter-spacing-hero: -0.01em;
+  --letter-spacing-header: -0.01em;
+  --letter-spacing-subheader: -0.01em;
+  --letter-spacing-title: -0.01em;
+}

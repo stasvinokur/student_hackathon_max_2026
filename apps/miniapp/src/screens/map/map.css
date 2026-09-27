@@ -1,0 +1,119 @@
+/* The «Карта» tab in Organic: its heading, the criteria, the lists and the cards. The rules come with the chunk of the
+   tab, as MapScreen.css and MapSlot.css do: the first screen loads none. The lists themselves are the lists of the
+   route (TaskList, styles.css); here only what the map adds to them.
+
+   The tab spaces its parts 18 px apart, as the mockup of Organic; the section switch and «Назад» give 6 px of it back,
+   so what follows them stands 12 px below, as on the other screens (--map-top of MapScreen.css). */
+/* Over the gap of .screen (12 px) in styles.css, whatever the order the stylesheets come in. */
+.screen.map-page { gap: 18px; }
+.map-page > :is(.sections-bar, .back) { margin-bottom: -6px; }
+/* On a wide screen the section switch stands where the column of the other screens puts it (styles.css), in the middle
+   and as wide, so it does not move when the tab changes: the sections, then the 8 px gap and the 44 px of the theme
+   switch. Its height, which --map-top counts, stays. */
+@media (min-width: 720px) {
+  .map-page > .sections-bar { justify-content: center; }
+  .map-page > .sections-bar > .sections { box-sizing: border-box; flex: 0 1 calc(var(--screen-column) - 2 * var(--screen-x) - 52px); }
+}
+/* The header of the index or of the places: the title in Lora over its note. */
+.map-hero { display: flex; flex-direction: column; gap: 8px; }
+.map-hero__title { margin: 0; font: 700 clamp(26px, 7.7vw, 30px)/1.1 var(--o-font-heading); letter-spacing: -0.01em; overflow-wrap: break-word; }
+.map-hero__note { margin: 0; font-size: 14px; line-height: 1.4; color: var(--o-secondary-text); }
+
+.notice--calm { background: var(--o-surface); }
+.map-problem { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+
+/* «Критерии»: collapsed, a pill of the card fill (a line tall, its radius stops at half the height), the word at the
+   left, how many criteria count and a chevron at the right; open, a card with the criteria under the pill. In a large
+   text the count goes under the word rather than past the edge. */
+.criteria { --criteria-gap: 8px; --criteria-x: 18px; display: flex; flex-direction: column; gap: var(--criteria-gap); border-radius: var(--o-radius-lg); background: var(--o-card-fill); }
+.criteria__toggle { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; min-height: 54px; padding: 14px var(--criteria-x); border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; font-size: 16px; font-weight: 700; text-align: left; cursor: pointer; }
+.criteria__toggle:active { background: var(--o-card-fill-hover); }
+@media (hover: hover) and (pointer: fine) { .criteria__toggle:hover { background: var(--o-card-fill-hover); } }
+.criteria__count { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 400; color: var(--o-muted-text); white-space: nowrap; }
+.criteria__chevron { flex: none; color: var(--o-muted-icon); transform: rotate(90deg); transition: transform 0.2s ease; }
+.criteria__toggle[aria-expanded='true'] .criteria__chevron { transform: rotate(-90deg); }
+/* The live region of the panel: its count is visually hidden, only the warnings show. It stays in the layout (a region
+   under display: none or contents may go unannounced), so with no warning it would still add the gap of the panel under
+   the header: it takes that gap (--criteria-gap) back, and each warning brings its own. */
+.criteria__status { display: flex; flex-direction: column; margin: calc(-1 * var(--criteria-gap)) var(--criteria-x) 0; }
+.criteria__status > .notice { margin-top: var(--criteria-gap); }
+.criteria__status > .notice:last-child { margin-bottom: 14px; }
+.criteria__list { display: flex; flex-direction: column; padding: 0 var(--criteria-x) 18px; }
+.criteria__list[hidden] { display: none; }
+.criteria__hint { padding-bottom: 10px; }
+/* One row per criterion: the title and its reach on the left, where a long title wraps (hyphenated in Russian, lang="ru"),
+   the select on the right at the width of its longest option, never squeezed. When the text column would get narrower
+   than 5.5em (a large system font or a text zoom, which grow the text and not the screen), the select moves under the
+   title instead of crushing it, and there it is no wider than the card: a native select cuts its text short, the page
+   does not scroll sideways. */
+.criterion { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--o-divider); }
+.criterion__text { flex: 1 1 5.5em; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: break-word; hyphens: auto; }
+.criterion__title { font-size: 15px; font-weight: 600; }
+.criterion__reach { font-size: 13px; }
+/* The select: a pill of the ground in the border of a control, its chevron drawn over it at the right. Its text is
+   16 px: under that iOS zooms the page into a select it focuses. */
+.criterion__control { position: relative; flex: none; display: flex; max-width: 100%; }
+.criterion__select { max-width: 100%; min-height: 44px; padding: 8px 32px 8px 12px; border: 1px solid var(--o-control-border); border-radius: var(--o-radius-pill); background: var(--o-bg); color: var(--o-text); font: inherit; font-size: 16px; font-weight: 500; text-overflow: ellipsis; -webkit-appearance: none; appearance: none; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .criterion__select:hover { border-color: var(--o-text); } }
+.criterion__chevron { position: absolute; top: 50%; right: 10px; margin-top: -8px; color: var(--o-muted-icon); transform: rotate(90deg); pointer-events: none; }
+.criteria__reset { align-self: flex-start; margin-top: 8px; }
+
+/* «Лучшие места» (a list of the route, .task-group): the rank on a sage disc, the index in Lora in sage. The list takes
+   the focus as a whole: its ring rounds as the card of its rows. */
+.map-top { border-radius: var(--o-radius-lg); }
+.map-top:focus:not(:focus-visible) { outline: none; }
+.map-top:focus-visible, .map-card:focus-visible { outline: 2px solid var(--o-focus-border); outline-offset: 2px; }
+.rank { display: inline-flex; min-width: 30px; height: 30px; padding: 0 6px; box-sizing: border-box; border-radius: var(--o-radius-pill); align-items: center; justify-content: center; font-weight: 700; font-size: 14px; background: var(--o-rank-fill); color: var(--o-sage-text); }
+.score { font: 700 22px/1 var(--o-font-heading); color: var(--o-sage-text); }
+.place-row__line { display: block; }
+.open-step { color: var(--o-accent-text); font-size: 14px; font-weight: 600; white-space: nowrap; }
+
+/* The card of a place or a cell: a card of Organic, the title in Lora with «Закрыть» at the right, a pill of a
+   secondary button 36 px tall whose touch target reaches 44 px. */
+.map-card { display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 20px; border-radius: var(--o-radius-lg); background: var(--o-card-fill); }
+.map-card:focus:not(:focus-visible) { outline: none; }
+.map-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.map-card__title { margin: 0; font: 700 22px/1.2 var(--o-font-heading); letter-spacing: -0.01em; overflow-wrap: break-word; min-width: 0; }
+.map-card__close { position: relative; flex: none; display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 14px 0 11px; border: 0; border-radius: var(--o-radius-pill); background: var(--o-button-fill); color: var(--o-text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.map-card__close::after, .map-card__map::after { content: ''; position: absolute; inset: -4px 0; }
+.map-card__close:active, .map-card__map:active { background: var(--o-button-fill-pressed); }
+@media (hover: hover) and (pointer: fine) { .map-card__close:hover:not(:active), .map-card__map:hover:not(:active) { background: var(--o-button-fill-hover); } }
+/* The index of a cell on a sage disc, beside the sentence that says it. */
+.map-card__summary { display: flex; align-items: center; gap: 12px; }
+.map-card__score { flex: none; display: flex; align-items: center; justify-content: center; min-width: 52px; height: 52px; padding: 0 8px; box-sizing: border-box; border-radius: var(--o-radius-pill); background: var(--o-rank-fill); color: var(--o-sage-text); font: 700 24px/1 var(--o-font-heading); }
+.map-card__text { margin: 0; font-size: 15px; line-height: 1.45; }
+.map-card__note { margin: 0; font-size: 13px; line-height: 1.4; color: var(--o-muted-text); }
+.map-card .map-card__label { margin-top: 8px; }
+.map-card__button { margin-top: 6px; }
+/* The steps of a place: the rows of a list of the route (.task-list) on the card itself, with no card of their own,
+   reaching 8 px from the edges of the card. */
+.task-list.map-card__steps { --task-list-pad: 8px; display: flex; flex-direction: column; margin: 0 -10px; padding: 0; border-radius: 0; background: none; }
+.map-card__source { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+/* The source flows as text, its icon after the last word: a block, the lines of a long name its touch target. */
+.map-card__source .link { display: block; box-sizing: border-box; padding: 11px 0; font-size: 15px; font-weight: 600; line-height: 1.45; }
+.map-card__source .link svg { margin-left: 5px; vertical-align: -1px; }
+/* 2GIS and Yandex Maps: pills side by side, one under the other when the card is too narrow for both. */
+.map-card__maps { display: flex; flex-wrap: wrap; gap: 8px; }
+.map-card__map { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 16px 8px 12px; border: 0; border-radius: var(--o-radius-pill); background: var(--o-button-fill); color: var(--o-text); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+.map-card__map::after { inset: -2px 0; }
+.map-card__map svg { flex: none; color: var(--o-accent-text); }
+
+/* What adds to the index: each criterion over a bar, sage for the points it adds, terracotta for those it takes. */
+.factors { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.factor { display: flex; flex-direction: column; gap: 6px; }
+/* A criterion that is off: its bar and number fade, its words keep their contrast. */
+.factor--off .factor__bar, .factor--off .factor__points { opacity: 0.4; }
+.factor__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 15px; font-weight: 600; }
+.factor__off { padding: 2px 8px; border-radius: var(--o-radius-pill); background: var(--o-surface); color: var(--o-secondary-text); font-size: 12px; font-weight: 600; }
+.factor__points { margin-left: auto; font-variant-numeric: tabular-nums; }
+.factor__bar { height: 8px; border-radius: var(--o-radius-pill); background: var(--o-track-fill); overflow: hidden; }
+.factor__fill { height: 100%; border-radius: inherit; background: var(--o-sage-fill); }
+.factor__fill--minus { background: var(--o-accent-fill); }
+.factor__fact { margin: 0; font-size: 14px; line-height: 1.4; }
+
+/* Keeps the place of the index while its snapshot loads, so the places below do not jump when it arrives. */
+.index-skeleton { display: flex; flex-direction: column; gap: 18px; min-height: 100vh; }
+.index-skeleton__title, .index-skeleton__block, .index-skeleton__row { background: var(--o-surface); }
+.index-skeleton__title { width: 70%; height: 33px; margin: 0; border-radius: var(--o-radius-sm); }
+.index-skeleton__block { height: 88px; border-radius: var(--o-radius-lg); }
+.index-skeleton__row { height: 72px; border-radius: var(--o-radius-lg); }
